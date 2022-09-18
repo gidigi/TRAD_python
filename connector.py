@@ -251,6 +251,45 @@ class TRAD:
     def companyAdd(self, name:str)->dict:
         result = json.loads(self.__post('/company', {'name':name}))
         return result
+    def trackerAdd(self,project,task,activity,name):
+        result = json.loads(self.__post(
+          '/tracker',
+          {
+              'project':project,
+              'task':task,
+              'activity':activity,
+              'name':name,
+          }
+        ))
+        try:
+            if result['id'] > -1:
+                return result['id']
+        except (NameError, AttributeError):
+            return -1
+        return -1
+    def trackerStart(self, tracker):
+        result = json.loads(self.__post(
+          '/start',
+          {
+              'tracker':tracker
+          }
+        ))
+    def trackerStop(self, tracker):
+        result = json.loads(self.__post(
+          '/stop',
+          {
+              'tracker':tracker
+          }
+        ))
+    def trackerLate(self, tracker, start, stop):
+        result = json.loads(self.__post(
+          '/report',
+          {
+              'tracker':tracker,
+              'start':start,
+              'stop':stop
+          }
+        ))
     def __init__(self):
         self.__logined = False
         self.__last_failed = False
