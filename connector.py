@@ -3,27 +3,34 @@ import http.client,json
 
 class TRAD:
     def __headers(self):
-        return ({
-             'Content-type' : 'application/json;charset=utf-8',
-             'Hash' : self.__hash,
-             'Auth' : self.__auth,
-             'Client' : self.__client,
-             'User' : self.__user,
-             'Type' : self.__type,
-             'Company' : self.__company
-        })
+        out = {'Content-type' : 'application/json;charset=utf-8'}
+        if self.__hash != "null":
+            out["Hash"] = self.__hash
+        if self.__auth != "null":
+            out["Auth"] = self.__auth
+        if self.__client != "null":
+            out["Client"] = self.__client
+        if self.__user != "null":
+            out["User"] = self.__user
+        if self.__type != "null":
+            out["Type"] = self.__type
+        if self.__company != "null":
+            out["Company"] = self.__company
+        return out
     def __get(self, url: str)->tuple:
         self.__conn.request('GET', url, '', self.__headers()) 
         response = self.__conn.getresponse()
         self.__last_response = response
         if response.status == 200:
             return response.read().decode()
+        print(response.status)
     def __post(self, url: str, post:dict)->tuple:
         self.__conn.request('POST', url, json.dumps(post), self.__headers()) 
         response = self.__conn.getresponse()
         self.__last_response = response
         if response.status == 200:
             return response.read().decode()
+        print(response.status)
     def __put(self, url: str, post:dict)->tuple:
         self.__conn.request('PUT', url, json.dumps(post), self.__headers()) 
         response = self.__conn.getresponse()
@@ -59,8 +66,10 @@ class TRAD:
             )
         )
         try:
-            self.__hash = result['data']['auth']
-            self.__user = result['data']['id']
+            self.__company = result['data']['company']
+            self.__auth    = result['data']['auth']
+            self.__hash    = result['data']['hash']
+            self.__user    = result['data']['id']
             self.__last_failed = False
             return True
         except (NameError, AttributeError):
@@ -73,17 +82,20 @@ class TRAD:
       phone:str,
       password:str
     )->int:
-        result = json.loads(
-            self.__post(
-                '/user', 
-                {
+        result = self.__post(
+            '/user', 
+            {
                     'name'     : name,
                     'email'    : email,
                     'phone'    : phone,
                     'password' : password
-                }
-            )
+            }
         )
+        return json.loads(result)['id']
+    def users(self)->dict:
+        result = self.__get('/users')
+        print(result)
+        return json.loads(result)
     def tasks(self)->dict:
         result = json.loads(self.__get('/tasks'))
         return result['data']
@@ -230,6 +242,54 @@ class TRAD:
         except (NameError, AttributeError):
             self.__last_failed = True
         return False
+
+    def companies(self)->dict:
+        print(self.__get('/companies'))
+        result = json.loads(self.__get('/companies'))
+        print(result)
+        return result['data']
+    def companyAdd(self, name:str)->dict:
+        result = json.loads(self.__post('/company', {'name':name}))
+        return result
+    def trackerAdd(self,project,task,activity,name):
+        result = json.loads(self.__post(
+          '/tracker',
+          {
+              'project':project,
+              'task':task,
+              'activity':activity,
+              'name':name,
+          }
+        ))
+        try:
+            if result['id'] > -1:
+                return result['id']
+        except (NameError, AttributeError):
+            return -1
+        return -1
+    def trackerStart(self, tracker):
+        result = json.loads(self.__post(
+          '/start',
+          {
+              'tracker':tracker
+          }
+        ))
+    def trackerStop(self, tracker):
+        result = json.loads(self.__post(
+          '/stop',
+          {
+              'tracker':tracker
+          }
+        ))
+    def trackerLate(self, tracker, start, stop):
+        result = json.loads(self.__post(
+          '/report',
+          {
+              'tracker':tracker,
+              'start':start,
+              'stop':stop
+          }
+        ))
     def __init__(self):
         self.__logined = False
         self.__last_failed = False
